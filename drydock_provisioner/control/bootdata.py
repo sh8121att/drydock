@@ -16,14 +16,26 @@ import json
 import yaml
 import base64
 
+from oslo_config import cfg
+
 from .base import StatefulResource
 
 class BootdataResource(StatefulResource):
+
+    bootdata_options = [
+        cfg.StrOpt('prom_init', default=None, help='Path to file to distribute for prom_init.sh')        
+    ]
 
     def __init__(self, orchestrator=None, **kwargs):
         super(BootdataResource, self).__init__(**kwargs)
         self.authorized_roles = ['anyone']
         self.orchestrator = orchestrator
+
+        cfg.CONF.register_opts(BootdataResource.bootdata_options, group='bootdata')
+
+        init_file = open(cfg.CONF.bootdata.prom_init, 'r')
+        self.prom_init = init_file.read()
+        init_file.close()
 
     def on_get(self, req, resp, hostname, data_key):
         if data_key == 'promservice':
@@ -35,7 +47,7 @@ class BootdataResource(StatefulResource):
             resp.content_type = 'text/plain'
             return
         elif data_key == 'prominit':
-            resp.body = BootdataResource.prom_init
+            resp.body = self.prom_init
             resp.content_type = 'text/plain'
             return
         elif data_key == 'promconfig':
@@ -52,25 +64,18 @@ class BootdataResource(StatefulResource):
 
                 host_model = host_design.get_baremetal_node(hostname)
 
-                part_list = []
+                part_selectors = ['all', hostname]
 
-                all_parts = self.state_manager.get_promenade_parts('all')
+                if host_model.tags is not None:
+                    part_selectors.extend(host_model.tags)
 
-                if all_parts is not None:
-                    part_list.extend([i.document for i in all_parts])
+                all_configs = host_design.get_promenade_config(part_selectors)
 
-                host_parts = self.state_manager.get_promenade_parts(hostname)
-
-                if host_parts is not None:
-                    part_list.extend([i.document for i in host_parts])
-
-                for t in host_model.tags:
-                    tag_parts = self.state_manager.get_promenade_parts(t)
-                    if t is not None:
-                        part_list.extend([i.document for i in tag_parts])
+                part_list = [i.document for i in all_configs]  
 
                 resp.body = "---\n" + "---\n".join([base64.b64decode(i.encode()).decode('utf-8') for i in part_list]) + "\n..."
                 return
+
 
     prom_init_service = \
 r"""[Unit]
@@ -81,7 +86,6 @@ ConditionPathExists=!/var/lib/prom.done
 
 [Service]
 Type=simple
-Environment=HTTP_PROXY=http://one.proxy.att.com:8080 HTTPS_PROXY=http://one.proxy.att.com:8080 NO_PROXY=127.0.0.1,localhost,135.16.101.87,135.16.101.86,135.16.101.85,135.16.101.84,135.16.101.83,135.16.101.82,135.16.101.81,135.16.101.80,kubernetes
 ExecStart=/var/tmp/prom_init.sh /etc/prom_init.yaml
 
 [Install]
@@ -96,7 +100,7 @@ After=network.target local-fs.target
 
 [Service]
 Type=simple
-ExecStart=/bin/echo 4 >/sys/class/net/ens3f0/device/sriov_numvfs
+ExecStart=/bin/sh -c '/bin/echo 4 >/sys/class/net/ens3f0/device/sriov_numvfs'
 
 [Install]
 WantedBy=multi-user.target
@@ -178,3 +182,6 @@ docker run -t --rm \
             --config-path /target$(realpath $1)
 touch /var/lib/prom.done
 """
+
+def list_opts():
+    return {'bootdata': BootdataResource.bootdata_options}

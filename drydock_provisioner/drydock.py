@@ -32,24 +32,24 @@ def start_drydock():
         cfg.BoolOpt('debug', short='d', default=False, help='Enable debug logging'),
     ]
 
-    config.conf.register_cli_opts(cli_options)
+    cfg.CONF.register_cli_opts(cli_options)
     config.config_mgr.register_options()
-    config.conf(sys.argv[1:])
+    cfg.CONF(sys.argv[1:])
 
-    if config.conf.debug:
-        config.conf.set_override(name='log_level', override='DEBUG', group='logging')
+    if cfg.CONF.debug:
+        cfg.CONF.set_override(name='log_level', override='DEBUG', group='logging')
 
     # Setup root logger
-    logger = logging.getLogger(config.conf.logging.global_logger_name)
+    logger = logging.getLogger(cfg.CONF.logging.global_logger_name)
 
-    logger.setLevel(config.conf.logging.log_level)
+    logger.setLevel(cfg.CONF.logging.log_level)
     ch = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s - %(message)s')
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
     # Specalized format for API logging
-    logger = logging.getLogger(config.conf.logging.control_logger_name)
+    logger = logging.getLogger(cfg.CONF.logging.control_logger_name)
     logger.propagate = False
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(user)s - %(req_id)s - %(external_ctx)s - %(message)s')
 
@@ -57,24 +57,25 @@ def start_drydock():
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
-
     state = statemgmt.DesignState()
 
-    orchestrator = orch.Orchestrator(config.conf.plugins,
-                             state_manager=state)
+    orchestrator = orch.Orchestrator(cfg.CONF.plugins, state_manager=state)
     input_ingester = ingester.Ingester()
-    input_ingester.enable_plugins(config.conf.plugins.ingester)
+    input_ingester.enable_plugins(cfg.CONF.plugins.ingester)
 
     # Check if we have an API key in the environment
     # Hack around until we move MaaS configs to the YAML schema
     if 'MAAS_API_KEY' in os.environ:
-        config.conf.set_override(name='maas_api_key', override=os.environ['MAAS_API_KEY'], group='maasdriver')
+        cfg.CONF.set_override(name='maas_api_key', override=os.environ['MAAS_API_KEY'], group='maasdriver')
+
+
+    wsgi_callable = api.start_api(state_manager=state, ingester=input_ingester, orchestrator=orchestrator)
 
     # Now that loggers are configured, log the effective config
-    config.conf.log_opt_values(logging.getLogger(config.conf.logging.global_logger_name), logging.DEBUG)
+    cfg.CONF.log_opt_values(logging.getLogger(cfg.CONF.logging.global_logger_name), logging.DEBUG)
 
-    return api.start_api(state_manager=state, ingester=input_ingester,
-                         orchestrator=orchestrator)
+    return wsgi_callable
+
 
 drydock = start_drydock()
 

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
+
 from oauthlib import oauth1
 import requests
 import requests.auth as req_auth
@@ -44,9 +46,11 @@ class MaasRequestFactory(object):
         self.base_url = base_url
         self.apikey = apikey
 
-        print("Creating MaaS API client for URL %s with key %s" % (base_url, apikey))
         self.signer = MaasOauth(apikey)
         self.http_session = requests.Session()
+
+        # TODO Get logger name from config
+        self.logger = logging.getLogger('drydock')
 
     def get(self, endpoint, **kwargs):
         return self._send_request('GET', endpoint, **kwargs)
@@ -143,7 +147,7 @@ class MaasRequestFactory(object):
         resp = self.http_session.send(prepared_req, timeout=timeout)
 
         if resp.status_code >= 400:
-            print("FAILED API CALL:\nURL: %s %s\nBODY:\n%s\nRESPONSE: %s\nBODY:\n%s" %
+            self.logger.debug("FAILED API CALL:\nURL: %s %s\nBODY:\n%s\nRESPONSE: %s\nBODY:\n%s" %
                 (prepared_req.method, prepared_req.url, str(prepared_req.body).replace('\\r\\n','\n'),
                  resp.status_code, resp.text))
         return resp
