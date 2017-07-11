@@ -111,11 +111,6 @@ class MaasNodeDriver(NodeDriver):
             raise errors.DriverError("No design ID specified in task %s" %
                                      (task_id))
 
-
-        if task.site_name is None:
-            raise errors.DriverError("No site specified for task %s." %
-                                    (task_id))
-
         self.orchestrator.task_field_update(task.get_id(),
                             status=hd_fields.TaskStatus.Running)
 
@@ -126,8 +121,7 @@ class MaasNodeDriver(NodeDriver):
 
             subtask = self.orchestrator.create_task(task_model.DriverTask,
                         parent_task_id=task.get_id(), design_id=design_id,
-                        action=task.action, site_name=task.site_name,
-                        task_scope={'site': task.site_name})
+                        action=task.action)
             runner = MaasTaskRunner(state_manager=self.state_manager,
                         orchestrator=self.orchestrator,
                         task_id=subtask.get_id())
@@ -161,8 +155,7 @@ class MaasNodeDriver(NodeDriver):
 
             subtask = self.orchestrator.create_task(task_model.DriverTask,
                         parent_task_id=task.get_id(), design_id=design_id,
-                        action=task.action, site_name=task.site_name,
-                        task_scope={'site': task.site_name})
+                        action=task.action) 
             runner = MaasTaskRunner(state_manager=self.state_manager,
                         orchestrator=self.orchestrator,
                         task_id=subtask.get_id())
@@ -207,8 +200,7 @@ class MaasNodeDriver(NodeDriver):
                 subtask = self.orchestrator.create_task(task_model.DriverTask,
                         parent_task_id=task.get_id(), design_id=design_id,
                         action=hd_fields.OrchestratorAction.IdentifyNode,
-                        site_name=task.site_name,
-                        task_scope={'site': task.site_name, 'node_names': [n]})
+                        task_scope={'node_names': [n]})
                 runner = MaasTaskRunner(state_manager=self.state_manager,
                         orchestrator=self.orchestrator,
                         task_id=subtask.get_id())
@@ -282,8 +274,7 @@ class MaasNodeDriver(NodeDriver):
                 subtask = self.orchestrator.create_task(task_model.DriverTask,
                         parent_task_id=task.get_id(), design_id=design_id,
                         action=hd_fields.OrchestratorAction.ConfigureHardware,
-                        site_name=task.site_name,
-                        task_scope={'site': task.site_name, 'node_names': [n]})
+                        task_scope={'node_names': [n]})
                 runner = MaasTaskRunner(state_manager=self.state_manager,
                         orchestrator=self.orchestrator,
                         task_id=subtask.get_id())
@@ -357,8 +348,7 @@ class MaasNodeDriver(NodeDriver):
                 subtask = self.orchestrator.create_task(task_model.DriverTask,
                         parent_task_id=task.get_id(), design_id=design_id,
                         action=hd_fields.OrchestratorAction.ApplyNodeNetworking,
-                        site_name=task.site_name,
-                        task_scope={'site': task.site_name, 'node_names': [n]})
+                        task_scope={'node_names': [n]})
                 runner = MaasTaskRunner(state_manager=self.state_manager,
                         orchestrator=self.orchestrator,
                         task_id=subtask.get_id())
@@ -432,8 +422,7 @@ class MaasNodeDriver(NodeDriver):
                 subtask = self.orchestrator.create_task(task_model.DriverTask,
                         parent_task_id=task.get_id(), design_id=design_id,
                         action=hd_fields.OrchestratorAction.ApplyNodePlatform,
-                        site_name=task.site_name,
-                        task_scope={'site': task.site_name, 'node_names': [n]})
+                        task_scope={'node_names': [n]})
                 runner = MaasTaskRunner(state_manager=self.state_manager,
                         orchestrator=self.orchestrator,
                         task_id=subtask.get_id())
@@ -508,8 +497,7 @@ class MaasNodeDriver(NodeDriver):
                 subtask = self.orchestrator.create_task(task_model.DriverTask,
                         parent_task_id=task.get_id(), design_id=design_id,
                         action=hd_fields.OrchestratorAction.DeployNode,
-                        site_name=task.site_name,
-                        task_scope={'site': task.site_name, 'node_names': [n]})
+                        task_scope={'node_names': [n]})
                 runner = MaasTaskRunner(state_manager=self.state_manager,
                         orchestrator=self.orchestrator,
                         task_id=subtask.get_id())
