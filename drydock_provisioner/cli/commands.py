@@ -11,39 +11,59 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+""" The entrypoint for the cli commands
+"""
 import os
-
+import logging
 import click
 
+from drydock_provisioner.drydock_client.session import DrydockSession
+from drydock_provisioner.drydock_client.client import DrydockClient
+from .design import commands as design
+
 @click.group()
-@click.option('--debug/--no-debug', default=False)
-@click.option('--token')
-@click.option('--url')
+@click.option('--debug/--no-debug',
+              help='Enable or disable debugging',
+              default=False)
+@click.option('--token',
+              '-t',
+              help='The auth token to be used',
+              default=lambda: os.environ.get('DD_TOKEN', ''))
+@click.option('--url',
+              '-u',
+              help='The url of the running drydock instance',
+              default=lambda: os.environ.get('DD_URL', ''))
 @click.pass_context
 def drydock(ctx, debug, token, url):
+    """ Drydock CLI to invoke the running instance of the drydock API
+    """
+    if not ctx.obj:
+        ctx.obj = {}
+
     ctx.obj['DEBUG'] = debug
 
     if not token:
-        ctx.obj['TOKEN'] = os.environ['DD_TOKEN']
-    else:
-        ctx.obj['TOKEN'] = token
+        ctx.fail("Error: Token must be specified either by "
+                 "--token or DD_TOKEN from the environment")
 
     if not url:
-        ctx.obj['URL'] = os.environ['DD_URL']
-    else:
-        ctx.obj['URL'] = url
+        ctx.fail("Error: URL must be specified either by "
+                 "--url or DD_URL from the environment")
 
-@drydock.group()
-def create():
-    pass
+    # setup logging for the CLI
+    # Setup root logger
+    logger = logging.getLogger('drydock_cli')
 
-@drydock.group()
-def list()
-    pass
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
+    logging_handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - '
+                                  '%(filename)s:%(funcName)s - %(message)s')
+    logging_handler.setFormatter(formatter)
+    logger.addHandler(logging_handler)
+    logger.debug('logging for cli initialized')
 
-@drydock.group()
-def show():
-    pass
+    # setup the drydock client using the passed parameters.
+    ctx.obj['CLIENT'] = DrydockClient(DrydockSession(host=url,
+                                                     token=token))
 
-@create.command()
-def design
+drydock.add_command(design.design)

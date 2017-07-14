@@ -11,18 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM drydock_base:0.1
+FROM ubuntu:16.04
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV container docker
 
-ADD drydock.conf /etc/drydock/drydock.conf
-ADD . /tmp/drydock
+RUN apt -qq update && \
+    apt -y install git \
+                   netbase \
+                   python3-minimal \
+                   python3-setuptools \
+                   python3-pip \
+                   python3-dev \
+                   ca-certificates \
+                   gcc \
+                   g++ \
+                   make \
+                   libffi-dev \
+                   libssl-dev --no-install-recommends
+
+# Copy direct dependency requirements only to build a dependency layer
+COPY ./requirements-direct.txt /tmp/drydock/
+RUN pip3 install -r /tmp/drydock/requirements-direct.txt
+
+COPY . /tmp/drydock
 
 WORKDIR /tmp/drydock
-
 RUN python3 setup.py install
 
 EXPOSE 9000
 
-CMD ["uwsgi","--http",":9000","-w","drydock_provisioner.drydock","--callable","drydock","--enable-threads","-L","--python-autoreload","1","--pyargv","--config-file /etc/drydock/drydock.conf"]
+ENTRYPOINT ["./entrypoint.sh"]
+
+CMD ["server"]
