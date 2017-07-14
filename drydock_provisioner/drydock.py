@@ -76,6 +76,5 @@ def start_drydock():
 
     return wsgi_callable
 
-
 drydock = start_drydock()
 

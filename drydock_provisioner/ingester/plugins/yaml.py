@@ -70,9 +70,7 @@ class YamlIngester(IngesterPlugin):
     """
     def parse_docs(self, yaml_string):
         models = []
-
         self.logger.debug("yamlingester:parse_docs - Parsing YAML string \n%s" % (yaml_string))
-
         try:
             parsed_data = yaml.load_all(yaml_string)
         except yaml.YAMLError as err:
@@ -335,7 +333,6 @@ class YamlIngester(IngesterPlugin):
                             node_metadata = spec.get('metadata', {})
                             metadata_tags = node_metadata.get('tags', [])
 
-                            model.tags = [t for t in metadata_tags]
 
                             owner_data = node_metadata.get('owner_data', {})
                             model.owner_data = {}
