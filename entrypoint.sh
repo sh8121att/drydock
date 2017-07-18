@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CMD="drydock"
-PORT="8000"
+PORT=${PORT:-9000}
 
 set -e
 
